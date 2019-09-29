@@ -1,9 +1,13 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Validator;
+use App\Models\Customer;
+use App\Models\Order;
+use App\Models\ShoppingCart;
+use Illuminate\Support\Facades\DB;
 /**
  * Check each method in the shopping cart controller and add code to implement
  * the functionality or fix any bug.
@@ -17,14 +21,18 @@ use Illuminate\Http\Request;
 class ShoppingCartController extends Controller
 {
 
+   
     /**
      * To generate a unique cart id.
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function generateUniqueCart()
+    public function generateUniqueCart(Request $request)
     {
-        return response()->json(['message' => 'this works']);
+        // $user =  $request->user();
+        //$random = ShoppingCart::getOrCreateCartId( $user);//todo modify cart table adding customer_id
+        $random   = Str::random(30);
+        return response()->json(['cart_id' => $random ]);
     }
 
     /**
@@ -32,9 +40,23 @@ class ShoppingCartController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function addItemToCart()
+    public function addItemToCart(Request $request)
     {
-        return response()->json(['message' => 'this works']);
+        $data = $this->getRequestData( $request  , ['cart_id','product_id','attributes','quantity']);
+        $customer = $request->user();
+        $validator = Validator::make($request->all(), [
+            'cart_id' => 'required',
+            'product_id' => 'required',
+            'attributes' => 'required',
+            'quantity' => 'required',
+        ]);
+        //todo add validation on product id & attributes
+        
+        if ($validator->fails()) {
+                return response()->json(['message'=> $validator->errors()]);
+        }
+        $result = ShoppingCart::addNewItem( $data, $customer );
+        return response()->json( $result );
     }
 
     /**
@@ -42,9 +64,10 @@ class ShoppingCartController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getCart()
+    public function getCart($cart_id)
     {
-        return response()->json(['message' => 'this works']);
+        $cartAndProduct = ShoppingCart::getProductList( $cart_id );
+        return response()->json( $cartAndProduct);
     }
 
     /**
@@ -52,9 +75,15 @@ class ShoppingCartController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function updateCartItem()
+    public function updateCartItem(Request $request, $item_id)
     {
-        return response()->json(['message' => 'this works']);
+        $item_id    = intval( $item_id);
+        $data       = $this->getRequestData( $request );
+        $cart       = ShoppingCart::updateQuantity( $item_id, $data["quantity"]);
+        if( is_null( $cart )) {
+            return response()->json(['message' => 'Cart not found'],404);    
+        }
+        return response()->json( $cart );
     }
 
     /**
@@ -62,9 +91,13 @@ class ShoppingCartController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function emptyCart()
+    public function emptyCart($cart_id )
     {
-        return response()->json(['message' => 'this works']);
+        $total_empty = ShoppingCart::emptyCart( $cart_id );
+        if( $total_empty == 0) {
+            return response()->json(['message' => 'Cart not found'],404);       
+        }
+        return response()->json([]);
     }
 
     /**
@@ -72,9 +105,14 @@ class ShoppingCartController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function removeItemFromCart()
+    public function removeItemFromCart($item_id)
     {
-        return response()->json(['message' => 'this works']);
+        $item_id  = intval( $item_id );
+        $total_remove = ShoppingCart::removeItem( $item_id );
+        if( $total_remove ==0 ) {
+            return response()->json(['message' => 'Cart not found'],404);     
+        }
+        return response()->json(['message' => 'successfully removed']);
     }
 
     /**
@@ -82,9 +120,18 @@ class ShoppingCartController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function createOrder()
+    public function createOrder(Request $request)
     {
-        return response()->json(['message' => 'this works']);
+        $data = $this->getRequestData( $request , ['cart_id', 'shipping_id', 'tax_id']);
+        $validator = Validator::make($data, [
+            'cart_id' => 'required',
+            'shipping_id' => 'required|numeric',
+            'tax_id' => 'required|numeric'
+            
+        ]);
+        $user =  $request->user();
+        $result     = Order::createOrder( $data['cart_id'], intval( $data['shipping_id']), intval( $data['tax_id']), $user);
+        return response()->json(['message' => 'successfully added']);
     }
 
     /**
@@ -92,9 +139,11 @@ class ShoppingCartController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getCustomerOrders()
+    public function getCustomerOrders(Request $request )
     {
-        return response()->json(['message' => 'this works']);
+        $user  = $request->user();
+        $orders = Customer::getOrders( $user->getKey());
+        return response()->json( $orders );
     }
 
     /**
@@ -102,9 +151,36 @@ class ShoppingCartController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getOrderSummary()
+    public function getOrderSummary($order_id)
     {
-        return response()->json(['message' => 'this works']);
+        $order_id  = intval( $order_id );
+        $order     = Order::find( $order_id );
+        if( !is_null( $order)) {
+            $order_detail = $order->details;
+            return response()->json(["order_id"=>$order->order_id , "order_items"=> $order_detail]);
+        }
+        else {
+            return response()->json(["message"=>"Not found"] ,404);
+        }
+    }
+
+
+    /**
+     * Order short detail
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function orderShortDetail($order_id)
+    {
+        $order_id   = intval( $order_id);
+        $order      = Order::shortDetail( $order_id );
+        if( !is_null( $order)) {
+            return response()->json( $order);
+        }
+        else {
+            return response()->json(["message"=>"Not found"] ,404);
+        }
+        
     }
 
     /**
@@ -112,8 +188,39 @@ class ShoppingCartController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function processStripePayment()
+    public function processStripePayment(Request $request)
     {
-        return response()->json(['message' => 'this works']);
+        $data       = $this->getRequestData( $request , ['stripeToken' , 'email', 'order_id']);
+        $validator = Validator::make($data, [
+            'order_id' => 'required|numeric',
+            'email' => 'required|email',
+            'stripeToken' => 'required'
+            
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message'=> $validator->errors()]);
+        }
+        $order = Order::find( intval( $data['order_id'] ));
+        if( is_null( $order)) {
+            return response()->json(["message"=>"Not found"] ,404);
+        }
+        else {
+            $data['amount']         = $order->total_amount;
+            $data['description']    = "process order of : ".$order->customer_id;
+            $data["currency"]       = "usd";
+            $result  = stripe_payment( $data );
+            return response()->json(['message' => "Successfully processed payment", $result]);
+        }
+
+        
     }
+
+    // public function clean(){
+    //     $yesterday  = date("Y-m-j H:i:s", strtotime( '-1 days' ) );
+    //         DB::table('shopping_cart')
+    //         ->where('added_on','<', $yesterday)
+    //         ->delete();
+    // }
+
+   
 }

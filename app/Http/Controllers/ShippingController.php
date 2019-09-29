@@ -22,8 +22,9 @@ class ShippingController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function getShippingRegions()
-    {
-        return response()->json(['success' => false, 'shipping' => ShippingRegion::all()]);
+    {   
+        $shipping_regions = ShippingRegion::all();
+        return response()->json( $shipping_regions );
     }
 
     /**
@@ -33,6 +34,7 @@ class ShippingController extends Controller
      */
     public function getShippingType($type_id)
     {
-        return response()->json(['success' => true, 'shipping' => Shipping::where('shipping_region_id', $type_id)->first()]);
+        $shipping_region =  Shipping::where('shipping_region_id', $type_id)->first();
+        return response()->json( $shipping_region );
     }
 }

@@ -19,22 +19,27 @@ Route::group(['prefix' => 'attributes'], function () {
     Route::get('/values/{attribute_id}', 'AttributeController@getAttributeValues');
     Route::get('/inProduct/{product_id}', 'AttributeController@getProductAttributes');
 });
-
-Route::post('/customers', 'CustomerController@updateCreditCard');
 Route::post('/customers/login', 'CustomerController@login');
-Route::get('/customer', 'CustomerController@getCustomerProfile');
-Route::put('/customer', 'CustomerController@apply');
-Route::put('/customer/address', 'CustomerController@updateCustomerAddress');
-Route::put('/customer/creditCard', 'CustomerController@updateCreditCard');
+Route::post('/customers', 'CustomerController@create');
+Route::post('/customers/facebook', 'CustomerController@facebookLogin');
+Route::get('/customers', 'CustomerController@getCustomerProfile')->middleware("auth.jwt");
+Route::get('/customer/token', 'CustomerController@getToken');
+Route::put('/customer', 'CustomerController@apply')->middleware("auth.jwt");
+Route::put('/customer/address', 'CustomerController@updateCustomerAddress')->middleware("auth.jwt");
+Route::put('/customer/creditCard', 'CustomerController@updateCreditCard')->middleware("auth.jwt");
 
 
 
 Route::group(['prefix' => 'products'], function () {
-    Route::get('/', 'ProductController@getAllCategories');
-    Route::get('/{product_id}', 'ProductController@getProduct');
+    Route::get('/', 'ProductController@getAllProducts');
+    Route::get('/{product_id}', 'ProductController@getProduct')->where('product_id', '[0-9]+');
+    Route::get('/{product_id}/reviews', 'ProductController@getProductReview')->where('product_id', '[0-9]+');
     Route::get('/search', 'ProductController@searchProduct');
-    Route::get('/inCategory/{category_id}', 'ProductController@getProductsByCategory');
-    Route::get('/inDepartment/{department_id}', 'ProductController@getProductsInDepartment');
+    Route::get('/inCategory/{category_id}', 'ProductController@getProductsByCategory')->where('category_id', '[0-9]+');
+    Route::get('/inDepartment/{department_id}', 'ProductController@getProductsInDepartment')
+                    ->where('department_id', '[0-9]+');
+    Route::post('/{product_id}/reviews', 'ProductController@postProductReview')
+                    ->where('product_id', '[0-9]+');
 });
 
 
@@ -48,6 +53,7 @@ Route::group(['prefix' => 'categories'], function () {
     Route::get('/', 'ProductController@getAllCategories');
     Route::get('/{category_id}', 'ProductController@toString');
     Route::get('/inDepartment/{category_id}', 'ProductController@getDepartmentCategories');
+    Route::get('/inProduct/{product_id}', 'ProductController@getProductCategory');
 
 });
 
@@ -59,18 +65,20 @@ Route::get('/shipping/regions/{shipping_region_id}', 'ShippingController@getShip
 
 Route::group(['prefix' => 'shoppingcart'], function () {
     Route::get('/generateUniqueId', 'ShoppingCartController@generateUniqueCart');
-    Route::post('/add', 'ShoppingCartController@addItemToCart');
+    Route::post('/add', 'ShoppingCartController@addItemToCart')->middleware("auth.jwt");
     Route::get('/{cart_id}', 'ShoppingCartController@getCart');
     Route::put('/update/{item_id}', 'ShoppingCartController@updateCartItem');
     Route::delete('/empty/{cart_id}', 'ShoppingCartController@emptyCart');
     Route::delete('/removeProduct/{item_id}', 'ShoppingCartController@removeItemFromCart');
+//    Route::delete('/clean', 'ShoppingCartController@clean');
 });
 
 Route::group(['prefix' => 'orders'], function () {
 
-    Route::post('/', 'ShoppingCartController@createOrder');
-    Route::get('/inCustomer', 'ShoppingCartController@getCustomerOrders');
+    Route::post('/', 'ShoppingCartController@createOrder')->middleware("auth.jwt");
+    Route::get('/inCustomer', 'ShoppingCartController@getCustomerOrders')->middleware("auth.jwt");
     Route::get('/{order_id}', 'ShoppingCartController@getOrderSummary');
+    Route::get('/shortDetail/{order_id}', 'ShoppingCartController@orderShortDetail')->where('order_id', '[0-9]+');
 });
 
 Route::post('/stripe/charge', 'ShoppingCartController@processStripePayment');

@@ -4,6 +4,7 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\DB;
 
 class Kernel extends ConsoleKernel
 {
@@ -24,8 +25,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')
-        //          ->hourly();
+        //clean old unused shoping cart
+        $schedule->call(function () {
+            $yesterday  = date("Y-m-j H:i:s", strtotime( '-1 days' ) );
+            DB::table('shopping_cart')
+            ->where('added_on','<', $yesterday)
+            ->delete();
+        })->daily();
     }
 
     /**

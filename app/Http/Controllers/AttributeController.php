@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Attribute;
 
 /**
  * The controller defined below is the attribute controller.
@@ -24,7 +25,8 @@ class AttributeController extends Controller
      */
     public function getAllAttributes()
     {
-        return response()->json(['message' => 'this works'], 202);
+        $attribtues = Attribute::all();
+        return response()->json(  $attribtues );
     }
 
     /**
@@ -32,9 +34,14 @@ class AttributeController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getSingleAttribute()
+    public function getSingleAttribute( $attribute_id )
     {
-        return response()->json(['message' => 'this works'], 205);
+        $id     = intval( $attribute_id );
+        $attribute = Attribute::where('attribute_id', $id)->first();
+        if( is_null( $attribute ) ) {
+            return response()->json([ 'message' =>'Could not find attribute'],404);
+        }
+        return response()->json( $attribute );
     }
 
     /**
@@ -42,9 +49,15 @@ class AttributeController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getAttributeValues()
+    public function getAttributeValues( $attribute_id )
     {
-        return response()->json(['message' => 'this works1']);
+        $id             = intval( $attribute_id );
+        $attribute      = Attribute::where('attribute_id', $id)->first();
+        if( is_null( $attribute ) ) {
+            return response()->json([ 'message' =>'Could not find attribute'],404);
+        }
+        $attribute_values = $attribute->attribute_values;
+        return response()->json( $attribute_values );
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Models\Tax;
 
 use Illuminate\Http\Request;
 
@@ -20,7 +21,8 @@ class TaxController extends Controller
      */
     public function getAllTax()
     {
-        return response()->json(['message' => 'this works']);
+        $taxes = Tax::all();
+        return response()->json( $taxes );
     }
 
     /**
@@ -28,8 +30,9 @@ class TaxController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getTaxById()
+    public function getTaxById($tax_id)
     {
-        return response()->json(['message' => 'this works']);
+        $tax    = Tax::find( intval( $tax_id ) );
+        return response()->json( $tax );
     }
 }

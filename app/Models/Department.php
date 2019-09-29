@@ -16,4 +16,8 @@ class Department extends Model
     public $timestamps = false;
     protected $table = 'department';
     protected $primaryKey = 'department_id';
+    public function category()
+    {
+        return $this->hasMany(Category::class,'department_id');
+    }
 }

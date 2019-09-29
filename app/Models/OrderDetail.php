@@ -10,4 +10,10 @@ class OrderDetail extends Model
 
     protected $table = 'order_detail';
     protected $primaryKey = 'item_id';
+    protected $fillable = ['unit_cost',
+                            'attributes',
+                            'product_name',
+                            'quantity',
+                            'product_id'
+                        ];
 }
