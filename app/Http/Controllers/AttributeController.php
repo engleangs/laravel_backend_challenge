@@ -39,7 +39,7 @@ class AttributeController extends Controller
         $id     = intval( $attribute_id );
         $attribute = Attribute::where('attribute_id', $id)->first();
         if( is_null( $attribute ) ) {
-            return response()->json([ 'message' =>'Could not find attribute'],404);
+            return response()->json( ['error'=>construct_error( 404,'ATR_01','Attribute does not exist','attribute_id')] ,404);    
         }
         return response()->json( $attribute );
     }
@@ -54,7 +54,7 @@ class AttributeController extends Controller
         $id             = intval( $attribute_id );
         $attribute      = Attribute::where('attribute_id', $id)->first();
         if( is_null( $attribute ) ) {
-            return response()->json([ 'message' =>'Could not find attribute'],404);
+            return response()->json( ['error'=>construct_error( 404,'ATR_01','Attribute does not exist','attribute_id')] ,404);    
         }
         $attribute_values = $attribute->attribute_values;
         return response()->json( $attribute_values );
@@ -65,9 +65,11 @@ class AttributeController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getProductAttributes()
+    public function getProductAttributes($product_id)
     {
-        return response()->json(['message' => 'this works']);
+        $product_id   = intval( $product_id );
+        $attributes     = Attribute::inProduct( $product_id );
+        return response()->json( $attributes );
 
     }
 }

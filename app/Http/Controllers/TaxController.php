@@ -33,6 +33,9 @@ class TaxController extends Controller
     public function getTaxById($tax_id)
     {
         $tax    = Tax::find( intval( $tax_id ) );
+        if( is_null( $tax) ) {
+            return response()->json( ['error'=>construct_error( 404,'TAX_01','Tax does not exist','tax_id')] ,404);    
+        }
         return response()->json( $tax );
     }
 }

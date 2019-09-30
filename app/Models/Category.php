@@ -18,10 +18,12 @@ class Category extends Model
 
     protected $table = 'category';
     protected $primaryKey = 'category_id';
+    protected $hidden = ['laravel_through_key'];
 
     public function department()
     {
         return $this->belongsTo(Department::class, 'department_id', 'department_id');
+            
     }
 
     public function isIn(int $department_id)

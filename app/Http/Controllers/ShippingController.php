@@ -26,6 +26,13 @@ class ShippingController extends Controller
         $shipping_regions = ShippingRegion::all();
         return response()->json( $shipping_regions );
     }
+    /**
+     * 
+     */
+    public function getShippingInRegion($shipping_region_id){
+        $shppings = Shipping::getShippingInRegion( $shipping_region_id );
+        return response()->json( $shppings );
+    }
 
     /**
      * Returns a list of shipping type in a specific shipping region.
@@ -35,6 +42,9 @@ class ShippingController extends Controller
     public function getShippingType($type_id)
     {
         $shipping_region =  Shipping::where('shipping_region_id', $type_id)->first();
+        if( is_null( $shipping_region) ) {
+            return response()->json( [ 'error' => construct_error(404,'SHP_01','Shipping not exist','shipping_id')],404);
+        }
         return response()->json( $shipping_region );
     }
 }

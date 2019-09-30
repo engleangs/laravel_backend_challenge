@@ -10,8 +10,9 @@ class Customer extends Model
 {
     public $timestamps = false;
 
-    protected $table = 'customer';
-    protected $primaryKey = 'customer_id';
+    protected $table = 'customer';//table name of 
+    protected $primaryKey = 'customer_id'; //customer id for primary key
+    protected $hidden = ['password']; //hide the password field for serialization
      /**
      * The attributes that are mass assignable.
      *

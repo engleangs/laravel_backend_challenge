@@ -22,20 +22,6 @@ use App\Http\Requests\CustomerLoginRequest;
 class CustomerController extends Controller
 {
 
-    protected $customMessages = [
-        'name.required' => 'name is required.|USR_02|name',
-        'name.alpha_spaces'=>'name is invalid.|USER_09|name',
-        'name.max' => 'name is too long.|USR_07|name',
-        'email.required'  => 'email is required.|USR_02|email',
-        'email.unique'  => 'email already exists.|USR_04|email',
-        'email.email'  => 'email already exists.|USR_03|email',
-        'password.required'  => 'password is required.|USR_02|email',
-        'credit_card.digits_between'=>'invalid credit card .|USR_08|credit_card',
-        'shipping_region_id.numeric'=>'Shipping regionID is not number.|USR_09|shipping_region_id',
-        'day_phone.digits'=>"Invalid phone number.|USER_06|day_phone",
-        'eve_phone.digits'=>"Invalid phone number.|USER_06|eve_phone",
-        'mob_phone.digits'=>"Invalid phone number.|USER_06|mob_phone",
-    ];
 
     /**
      * Allow customers to create a new account.
@@ -50,7 +36,8 @@ class CustomerController extends Controller
             'name' => 'required|alpha_spaces|max:200',
             'email' => 'required|unique:customer,email|email',
             'password' => 'required'
-        ],$this->customMessages
+            ],
+            error_message_for_customer()
         );
         
         if($validator->fails()) {
@@ -71,12 +58,14 @@ class CustomerController extends Controller
     {
         $data = $this->getRequestData( $request );
         $validator = Validator::make($data, [
-            'email' => 'required|email',
-            'password' => 'required'
-        ], $this->customMessages );
+                'email' => 'required|email',
+                'password' => 'required'
+            ], 
+            error_message_for_customer()
+        );
         if($validator->fails()) {
             $errors = format_input_error( $validator->errors()->first() );
-            return  response()->json(['error'=>$errors],400);       
+            return  response()->json( [ 'error'=>$errors ] , 400);       
         }
         $login_result = verify_customer( $data["email"] , $data["password"]);
         if( $login_result["success"] ) {
@@ -85,7 +74,7 @@ class CustomerController extends Controller
         } 
         return response()->json( 
                 [
-                    'error'=> construct_error( 403, 'USR_01','Invalid Email or Password','email|password')
+                    'error'=> construct_error( 403, 'USR_01', 'Invalid Email or Password','email|password')
                 ],
             403);    
     }
@@ -99,7 +88,6 @@ class CustomerController extends Controller
     {
         $customer_id = $request->user()->getKey();//use cache like redis to enahance performance
         $customer = Customer::where('customer_id' , $customer_id)->get()->first();
-        $customer = guard_customer_field( $customer );
         return response()->json( $customer);
     }
 
@@ -124,16 +112,15 @@ class CustomerController extends Controller
         $validator = Validator::make($data, [
             'shipping_region_id' => 'numeric',
             ],
-            $this->customMessages
+            error_message_for_customer()
         );
         $current_customer = $request->user();
         $customer = Customer::find( intval($current_customer->getKey()));
         if( is_null( $customer) ) {
-            return response()->json(['message'=>'Not found '], 404);
+            return response()->json(['error'=>construct_error( 404,'CUS_01','Customer does not exist','customer_id')], 404);
         }
         $customer = bind_customer_isset( $customer , $data);
         $customer->save();
-        $customer = guard_customer_field( $customer );
         return response()->json( $customer );
     }
 
@@ -148,7 +135,7 @@ class CustomerController extends Controller
         $validator = Validator::make($data, [
             'credit_card' => 'required|digits_between:15,25'
             ],
-            $this->customMessages
+            error_message_for_customer()
          );
         if($validator->fails()) {
             $errors = format_input_error( $validator->errors()->first() );
@@ -159,11 +146,10 @@ class CustomerController extends Controller
         if( ! is_null($customer ) ) {
             $customer->credit_card = $data['credit_card'];
             $customer->save();
-            $customer = guard_customer_field( $customer );
             return response()->json( $customer );
         }
         else {
-            return  response()->json(['message'=> "Not found" ],404);       
+            return  response()->json( ['error'=>construct_error( 404,'CUS_01','Customer does not exist','customer_id')],404);       
         }
     }
 
@@ -182,7 +168,7 @@ class CustomerController extends Controller
             'eve_phone'=>'digits:10',
             'mob_phone'=>'digits:10'
         ],
-        $this->customMessages
+        error_message_for_customer()
     );
         if($validator->fails()) {
             return  response()->json(['message'=> $validator->errors() ],400);       
@@ -190,13 +176,12 @@ class CustomerController extends Controller
         $login_customer   = $request->user();
         $customer = Customer::find( intval(  $login_customer->getKey()) );
         if( ! is_null($customer ) ) {
-            $customer = bind_customer_isset( $data );
+            $customer = bind_customer_isset( $customer, $data );
             $customer->save();
-            $customer = guard_customer_field( $customer );
             return response()->json( $customer );
         }
         else {
-            return  response()->json(['message'=> "Not found" ],404);       
+            return  response()->json(['error'=>construct_error( 404,'CUS_01','Customer does not exist','attribute_id') ],404);       
         }
 
     }
@@ -212,7 +197,9 @@ class CustomerController extends Controller
         $data = $this->getRequestData( $request );
         $validator = Validator::make($data, [
             'access_token' => 'required'
-        ] , $this->customMessages );
+            ] , 
+            error_message_for_customer()
+     );
         if($validator->fails()) {
             return  response()->json(['message'=> $validator->errors() ],400);       
         }
@@ -235,7 +222,7 @@ class CustomerController extends Controller
             }
         }
         else {
-            return response()->json( ['message'=>"Access deny"], 403 );
+            return response()->json( ['error'=>construct_error( 403,'AUT_02','Access Unauthorized.','') ], 403 );
         }
 
         

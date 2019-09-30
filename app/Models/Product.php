@@ -30,7 +30,7 @@ class Product extends Model
     protected $primaryKey = 'product_id';
 
     
-    public static function limit_description($description_length , $items ) {
+    public static function limitDescription($description_length , $items ) {
     
 
         foreach( $items as $item) {
@@ -45,10 +45,17 @@ class Product extends Model
         $query_instance     =   DB::table('product')
                                 ->leftJoin('product_category', 'product.product_id', '=', 'product_category.product_id')
                                 ->where('product_category.category_id','=', $category_id)
-                                ->select('product.*')
+                                ->select(
+                                            'product.product_id',
+                                            'product.name',
+                                            'product.description',
+                                            'product.price',
+                                            'product.discounted_price',
+                                            'product.thumbnail'
+                                        )
                                 ;
         $paginate_data      = $query_instance->paginate( $limit, ["*"], 'page', $current_page );
-        $items              =  self::limit_description( $description_length ,  $paginate_data->items() );
+        $items              =  self::limitDescription( $description_length ,  $paginate_data->items() );
         return  $items;
                             
     }
@@ -65,7 +72,7 @@ class Product extends Model
         }
         $paginate_data          = self::paginate( $limit,["*"], 'page',$current_page );
         $items                  = $paginate_data->items();
-        $items                  = self::limit_description( $description_length , $items);
+        $items                  = self::limitDescription( $description_length , $items);
         $data                   = [
                                     "paginationMeta"=>[
                                         "currentPage"=> $paginate_data->currentPage(),
@@ -82,7 +89,25 @@ class Product extends Model
 
     public static function countedAndPaginableResultsWithDepartments(array $criteria = [])
     {
-        return self::all();
+        $department_id = $criteria['department_id'];
+        $current_page  = $criteria['current_page'];
+        $limit         = $criteria['limit'];
+        $description_length = isset($criteria[ "description_length" ])? ($criteria[ "description_length" ]):200 ;
+        $paginate_data = Category::where('department_id',$department_id)
+                        ->leftJoin('product_category','product_category.category_id','category.category_id')
+                        ->leftJoin('product','product.product_id','product_category.product_id')
+                        ->select(
+                                'product.product_id',
+                                'product.name',
+                                'product.description',
+                                'product.price',
+                                'product.discounted_price',
+                                'product.thumbnail'
+                                )
+                        ->paginate( $limit,["*"], 'page',$current_page);
+        $items = $paginate_data->items();
+        $items =   self::limitDescription( $description_length , $items);
+        return $items;
     }
 
     public static function searchProduct($query_string , $all_words, $current_page, $limit ,$description_length) {
@@ -93,10 +118,17 @@ class Product extends Model
         }
         $paginate_data      = $query_instance->paginate( $limit, ["*"], $current_page);
         $items              = $paginate_data->items();
-        $items              = self::limit_description( $description_length , $items);
+        $items              = self::limitDescription( $description_length , $items);
         return $items;                    
     }
 
+    public static function getCategoryOfProduct($product_id) {
+        return ProductCategory::where('product_id',$product_id)
+            ->join('category','category.category_id','product_category.category_id')
+            ->select('category.category_id','category.department_id','category.name')
+            ->get()
+            ->first();
+    }
     public function categories()
     {
         return $this->hasManyThrough(

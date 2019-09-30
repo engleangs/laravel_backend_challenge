@@ -20,7 +20,7 @@ if( !function_exists('customer_to_token') ) {
         $token_data = jwt_token( $customer );
         return [ 'customer'=>$customer ,
                 'accessToken'=> "Bearer ".$token_data['token'],
-                'expire_in'=>   $token_data['expire_in'].''
+                'expiresIn'=>   $token_data['expire_in'].''
         ];
     }
 }

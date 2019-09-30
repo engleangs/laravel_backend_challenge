@@ -42,5 +42,17 @@ class Review extends Model
        return $result;
  
     }
+    public static function reviewWithProduct( int $review_id)  {
+        return Review::where('review_id', $review_id)
+                ->join('product','product.product_id','review.product_id')
+                ->select(
+                    'product.name',
+                    'review.review',
+                    'review.rating',
+                    'review.created_on'
+                )
+                ->get()
+                ->first();
+    }
     
 }

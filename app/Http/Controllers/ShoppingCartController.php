@@ -44,16 +44,19 @@ class ShoppingCartController extends Controller
     {
         $data = $this->getRequestData( $request  , ['cart_id','product_id','attributes','quantity']);
         $customer = $request->user();
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make( $data, [
             'cart_id' => 'required',
-            'product_id' => 'required',
+            'product_id' => 'required|numeric',
             'attributes' => 'required',
-            'quantity' => 'required',
-        ]);
+            'quantity' => 'required|numeric',
+        ],
+        error_message_for_shopping_cart()
+    );
         //todo add validation on product id & attributes
         
-        if ($validator->fails()) {
-                return response()->json(['message'=> $validator->errors()]);
+        if($validator->fails()) {
+            $errors = format_input_error( $validator->errors()->first() );
+            return  response()->json(['error'=>$errors],400);          
         }
         $result = ShoppingCart::addNewItem( $data, $customer );
         return response()->json( $result );
@@ -67,6 +70,9 @@ class ShoppingCartController extends Controller
     public function getCart($cart_id)
     {
         $cartAndProduct = ShoppingCart::getProductList( $cart_id );
+        if( count( $cartAndProduct) ==0 ){
+            return response()->json( ['error'=>construct_error( 404,'CAT_01','Cart does not exist','cart_id')] ,404);    
+        }
         return response()->json( $cartAndProduct);
     }
 
@@ -78,10 +84,13 @@ class ShoppingCartController extends Controller
     public function updateCartItem(Request $request, $item_id)
     {
         $item_id    = intval( $item_id);
-        $data       = $this->getRequestData( $request );
+        $data       = $this->getRequestData( $request ,['quantity'] );
+        if( !is_numeric( $data['quantity'])) {
+            return response()->json( ['error'=>construct_error( 404,'CAT_03','Invalid quantity','quantity')] ,404);    
+        }
         $cart       = ShoppingCart::updateQuantity( $item_id, $data["quantity"]);
         if( is_null( $cart )) {
-            return response()->json(['message' => 'Cart not found'],404);    
+            return response()->json( ['error'=>construct_error( 404,'CAT_01','Cart does not exist','item_id')] ,404);    
         }
         return response()->json( $cart );
     }
@@ -95,7 +104,7 @@ class ShoppingCartController extends Controller
     {
         $total_empty = ShoppingCart::emptyCart( $cart_id );
         if( $total_empty == 0) {
-            return response()->json(['message' => 'Cart not found'],404);       
+            return response()->json( ['error'=>construct_error( 404,'CAT_01','Cart does not exist','cart_id')] ,404);    
         }
         return response()->json([]);
     }
@@ -109,8 +118,8 @@ class ShoppingCartController extends Controller
     {
         $item_id  = intval( $item_id );
         $total_remove = ShoppingCart::removeItem( $item_id );
-        if( $total_remove ==0 ) {
-            return response()->json(['message' => 'Cart not found'],404);     
+        if( $total_remove == 0 ) {
+            return response()->json( ['error'=>construct_error( 404,'CAT_01','Cart does not exist','cart_id')] ,404);    
         }
         return response()->json(['message' => 'successfully removed']);
     }
@@ -128,10 +137,17 @@ class ShoppingCartController extends Controller
             'shipping_id' => 'required|numeric',
             'tax_id' => 'required|numeric'
             
-        ]);
+        ] , error_message_for_shopping_cart() );
+        if($validator->fails()) {
+            $errors = format_input_error( $validator->errors()->first() );
+            return  response()->json(['error'=>$errors],400);       
+        }
         $user =  $request->user();
         $result     = Order::createOrder( $data['cart_id'], intval( $data['shipping_id']), intval( $data['tax_id']), $user);
-        return response()->json(['message' => 'successfully added']);
+        if( $result == -1) {
+            return response()->json( ['error'=>construct_error( 404,'ORD_01','Cart does not exist','cart_id')] ,404);    
+        }
+        return response()->json(['order_id' =>  $result]);
     }
 
     /**
@@ -160,7 +176,7 @@ class ShoppingCartController extends Controller
             return response()->json(["order_id"=>$order->order_id , "order_items"=> $order_detail]);
         }
         else {
-            return response()->json(["message"=>"Not found"] ,404);
+            return response()->json( ['error'=>construct_error( 404,'ORD_01','Order does not exist','order_id')] ,404);    
         }
     }
 
@@ -178,7 +194,7 @@ class ShoppingCartController extends Controller
             return response()->json( $order);
         }
         else {
-            return response()->json(["message"=>"Not found"] ,404);
+            return response()->json( ['error'=>construct_error( 404,'ORD_01','Order does not exist','cart_id')] ,404);    
         }
         
     }
@@ -202,14 +218,23 @@ class ShoppingCartController extends Controller
         }
         $order = Order::find( intval( $data['order_id'] ));
         if( is_null( $order)) {
-            return response()->json(["message"=>"Not found"] ,404);
+            return response()->json( ['error'=>construct_error( 404,'ORD_01','Order does not exist','cart_id')] ,404);    
         }
         else {
-            $data['amount']         = $order->total_amount;
-            $data['description']    = "process order of : ".$order->customer_id;
-            $data["currency"]       = "usd";
-            $result  = stripe_payment( $data );
-            return response()->json(['message' => "Successfully processed payment", $result]);
+            try {
+                $data['amount']         = $order->total_amount;
+                $data['description']    = "process order of : ".$order->customer_id;
+                $data["currency"]       = "usd";
+                $result  = stripe_payment( $data );
+                $order->status = 1;
+                $order->comments = "paid at ".NOW();
+                $order->reference = $result->balance_transaction;
+                $order->save();
+                return response()->json(['message' => "Successfully processed payment", $result]);
+            }catch(\Exception $ex) {
+                //todo add log for transaction
+                return response()->json(['message' => $ex->getMessage()],403);
+            }
         }
 
         

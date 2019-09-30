@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\User;
-
+use Illuminate\Support\Facades\DB;
 /**
  * Class ShoppingCart
  * @package App\Models
@@ -25,6 +25,7 @@ class ShoppingCart extends Model
     protected $table = 'shopping_cart';
     protected $primaryKey = 'item_id';
     protected $guarded = ['item_id'];
+    protected $hidden = ['added_on','buy_now'];
 
     public static function getOrCreateCartId(User $user): string
     {
@@ -76,7 +77,7 @@ class ShoppingCart extends Model
         return $result;
     }
     public static function removeItem( int $item_id):int {
-        $result = DB::table('shopping_cart')->where('item_id',$cart_id)->delete();
+        $result = DB::table('shopping_cart')->where('item_id',$item_id)->delete();
         return $result;
     }
 }

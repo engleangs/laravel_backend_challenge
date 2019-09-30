@@ -47,13 +47,21 @@ class ProductController extends Controller
     public function getProduct( Request $request, $product_id )
     {
         $id                 = intval( $product_id );
-        $description_length = intval( $request->input('description_length', 200) );
+        $description_length = $request->input('description_length', 200);
+        if( !is_numeric($description_length)) {
+            return response()->json(
+                [   
+                    'error'=>construct_error( 400,'PRD_03','Description length is invalid','description_length')
+                ],
+                404
+            );
+        }
+        $description_length = intval(  $description_length );
         $product            = Product::where('product_id', $id )->first();
         if (is_null($product)) {
             return response()->json(
                                     [   
-                                        'status' => false,
-                                        'message'=>'Not found'
+                                        'error'=>construct_error( 404,'PRD_01','Product does not exist','product_id')
                                     ],
                                     404
                                 );
@@ -93,9 +101,17 @@ class ProductController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getProductsInDepartment()
+    public function getProductsInDepartment(Request $request ,$department_id)
     {
-        return response()->json(['message' => 'this works']);
+        $department_id = intval( $department_id );
+        [ $page ,$limit ,$description_length  ] = query_product_param( $request);
+        $items = Product::countedAndPaginableResultsWithDepartments([
+                'current_page'=>$page,
+                'limit'=>$limit,
+                'description_length'=> $description_length,
+                'department_id'=>$department_id
+        ]);
+        return response()->json( $items );
     }
 
     /**
@@ -119,9 +135,9 @@ class ProductController extends Controller
         $id = intval( $department_id );
         $department = Department::find( $id);
         if( is_null($department) ) {
-            return response()->json([ 'message' =>'Could not find department'],404);
+            return response()->json( [ 'error' => construct_error(404,'DEP_02','Department not exist','department_id')],404);
         }   
-        return response()->json(['status' => false, 'department' => $department]);
+        return response()->json($department );
 
     }
 
@@ -146,7 +162,7 @@ class ProductController extends Controller
         $id         = intval( $department_id );
         $deparment  = Department::where('department_id', $id)->first();
         if( is_null( $deparment) ) {
-            return response()->json([ 'message' =>'Could not find department'],404);
+            return response()->json( [ 'error' => construct_error(404,'DEP_02','Department not exist','department_id')],404);
         }
         $category = $deparment->category;
         return response()->json([ 'rows'=> $category ]);
@@ -160,11 +176,23 @@ class ProductController extends Controller
     public function getProductCategory($product_id)
     {
         $id         = intval($product_id);
-        $product    = Product::where( 'product_id', $id )->first();
-        if( is_null( $product ) )  {
-            return response()->json(['message' => 'Not found'], 404);
+        $category   = Product::getCategoryOfProduct( $product_id );
+        if( is_null( $category ) )  {
+            return response()->json( [ 'error' => construct_error(404,'PRD_02','Product not exist','product_id')],404);
         }
-        $category  = $product->categories->first();
+        return response()->json($category);
+    }
+    /**
+     * Returns a category of  a particular id
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getSingleCategory($category_id ){
+        $category_id = intval( $category_id );
+        $category    = Category::find( $category_id );
+        if( is_null( $category ) ) {
+            return response()->json( [ 'error' => construct_error(404,'CAT_01','Category not exist','department_id')],404);
+        }
         return response()->json($category);
     }
 
@@ -175,11 +203,9 @@ class ProductController extends Controller
      *
      */
     public function getProductReview($product_id) {
-        
-        $customer = Customer::where('customer_id',1)->get()->first();
         $product_id = intval( $product_id );
         $reviews    = Review::fetchListByProductId( $product_id  );
-        return response()->json($reviews);
+        return response()->json([ $reviews ]);
     }
 
     /**
@@ -189,22 +215,27 @@ class ProductController extends Controller
      */
 
     public function postProductReview(Request $request, $product_id) {
-        if ($request->isJson()) {
-            $data = $request->json()->all();
-        } else {
-            $data = $request->all();
-        }
+        //since product_id alrady present in url this one is duplicate
+        $user  = $request->user();
+        $customer_id = $user->getKey();
+        $data = $this->getRequestData($request, [ 'product_id', 'review','rating']);
         $validator = Validator::make($data, [
-            'customer_id' => 'required|numeric',
             'review' => 'required',
-            'rating' => 'required|numeric'
-        ]);
+            'rating' => 'required|numeric',
+            'product_id'=>'numeric|required'
+            ],
+            error_message_for_review()
+        );
         if($validator->fails()) {
-            return  response()->json(['message'=> $validator->errors() ],400);       
+            $errors = format_input_error( $validator->errors()->first() );
+            return  response()->json(['error'=>$errors],400);          
         }
-        $data[ 'product_id' ] = intval($product_id); 
+        $data[ 'customer_id' ] = $customer_id;
         $review = Review::create( $data );
-        return  response()->json( $review , 201);       
+        $review_with_product  = Review::reviewWithProduct( $review->review_id);
+        return  response()->json( 
+                    $review_with_product
+            , 201);       
     }
 
 

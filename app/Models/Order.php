@@ -21,6 +21,7 @@ class Order extends Model
     public function details(){
         return $this->hasMany('App\Models\OrderDetail','order_id','order_id');
     }
+   
 
     public static function addOrderDetails(array $order_details , Order $order){
         foreach($order_details as $key=>$order_detail) {
@@ -31,12 +32,19 @@ class Order extends Model
     }
 
 
+    /***
+     * 
+     * Create order instance and order details 
+     * @return order_id 
+     */
 
     public static function createOrder(string $cart_id, int $shipping_id, int $tax_id , User $user):int {
         $cart = ShoppingCart::where('cart_id', $cart_id)->get();
         $total_amount = 0;  
         $product_ids = [];
-        
+        if( count($cart)==0) {
+            return -1;//exit if no cart to add
+        }
         foreach($cart as $item) {
             $product_ids[ $item->product_id] = $item->product_id;
         }
