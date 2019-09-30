@@ -26,7 +26,10 @@ See [server requirements](https://laravel.com/docs/5.8/installation#server-requi
 ```sh
 mysql -u <dbuser> -D <databasename> -p < ./database/database.sql
 ```
+* Update password column in table customer to length
+```sh
 
+```
 * Run `php artisan serve` to start the app in development
 
 ## Request and Response Object API guide for all Endpoints
@@ -41,3 +44,12 @@ Build image
 Run container
  
 `docker run -p 80:80 -v $(pwd):/var/www/laravel turing_app`
+##Custom for  challenge guide
+ - Update password column in table **customer** to be 200 character length
+ - Create crontab on server to allow scheduler for clean unsed shopping_cart
+
+ ```sh
+* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+- Configure som API variable such as Facebook , Stripe in **.env.example**
