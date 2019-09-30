@@ -44,6 +44,8 @@ Build image
 Run container
  
 `docker run -p 80:80 -v $(pwd):/var/www/laravel turing_app`
+
+
 ##Custom for  challenge guide
  - Update password column in table **customer** to be 200 character length
  - Create crontab on server to allow scheduler for clean unsed shopping_cart
