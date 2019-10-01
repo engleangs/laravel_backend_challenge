@@ -95,4 +95,17 @@ class Order extends Model
         $order->status = $order->status.'';
         return $order;
     }
+
+    public static function getOrderResult( int $order_id) {
+        $order = Order::find( $order_id );
+        $customer = Customer::find( $order->customer_id);
+        $data = ['order' =>$order,
+                 'order_details'=>$order->details,
+                 'shipping'=>Shipping::getShippingWithCost( $order->shipping_id),
+                 'customer'=>$customer,
+                 'email'=>$customer->email,
+        ];
+        return $data;
+        
+    }
 }

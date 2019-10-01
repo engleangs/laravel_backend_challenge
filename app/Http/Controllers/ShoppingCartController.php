@@ -147,6 +147,7 @@ class ShoppingCartController extends Controller
         if( $result == -1) {
             return response()->json( ['error'=>construct_error( 404,'ORD_01','Cart does not exist','cart_id')] ,404);    
         }
+        
         return response()->json(['order_id' =>  $result]);
     }
 

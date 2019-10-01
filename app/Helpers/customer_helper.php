@@ -30,18 +30,7 @@ if( !function_exists('fetch_customer_to_token') ) {
         return customer_to_token( $customer );
     }
 }
-if( !function_exists('guard_customer_field') ) {
-    function guard_customer_field(Customer $customer,$fields=[]) {
-        if( count( $fields) == 0) {
-            $fields = [ "password"];
-        }
-        foreach($fields as $field) {
-            $customer->makeHidden( $field);
-        }
-        return $customer;
-
-    }
-} 
+ 
 if( !function_exists('bind_customer_isset') ) {
     function bind_customer_isset( Customer $customer, $data) {
         foreach($data as $key => $val) {

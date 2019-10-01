@@ -23,4 +23,10 @@ class Shipping extends Model
                 )
         ->get();
     }
+    public static function getShippingWithCost(int $shipping_id) {
+            return Shipping::where('shipping_id', $shipping_id)
+                    ->leftJoin('shipping_region','shipping_region.shipping_region_id','shipping.shipping_region_id')
+                    ->select('shipping_type','shipping_cost','shipping_region')
+                    ->first();
+    }
 }

@@ -10,6 +10,7 @@ if(!function_exists( 'create_stripe_customer')) {
      * expected to have some following keys :
      * customer["email"]
      * customer["source"]
+     * @return StripeCustomer
      */
     function create_stripe_customer( $customerDetailsAry ){
         $customer = new StripeCustomer();
@@ -28,6 +29,7 @@ if( !function_exists('stripe_payment')) {
      *  data["amount"]
      *  data["description"]
      *  data["currency"]
+     * @return stripe payment result
      * 
      */
     function stripe_payment( $data ) {

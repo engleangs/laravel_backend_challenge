@@ -100,3 +100,14 @@ Route::post('/stripe/charge', 'ShoppingCartController@processStripePayment');
 Route::get('/tax', 'TaxController@getAllTax');
 Route::get('/tax/{tax_id}', 'TaxController@getTaxById')
 ->where('tax_id', '[0-9]+');
+
+Route::get('/email-test',function(){
+        // $details  = [
+        //         'email'=>'571b53c735-455857@inbox.mailtrap.io'
+        // ];
+        
+        dispatch(new App\Jobs\SendEmailJob( 9 ));
+        dd('Ok');
+        // return view('order_email' )
+        // ->with('data',$data);
+});
